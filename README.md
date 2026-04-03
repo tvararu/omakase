@@ -802,10 +802,6 @@ updates:
       day: monday
     commit-message:
       prefix: "chore(deps):"
-    ignore:
-      - dependency-name: "*"
-        update-types:
-          - version-update:semver-major
     groups:
       minor-and-patch:
         update-types:
