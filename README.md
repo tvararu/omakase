@@ -2,7 +2,7 @@
 
 Author: Theodor Vararu
 
-Last updated: 01/04/2026
+Last updated: 07/04/2026
 
 This is a curated set of recipes I use across multiple projects.
 
@@ -641,7 +641,7 @@ This sets up `hk` to check that commits follow the CLAUDE.md guidelines.
 ```gitignore
 .claude/*.local.*
 .playwright-mcp
-.worktrees
+.claude/worktrees
 config/secret.key
 coverage
 mise.local.toml
@@ -649,7 +649,7 @@ tmp/*
 !tmp/.keep
 ```
 
-### git: Worktree and feature branch management
+### git: Branch cleanup
 
 ```toml
 [tasks.main]
@@ -672,36 +672,87 @@ else
   echo "No stale branches to clean up"
 fi
 '''
-
-[tasks.worktree]
-description = "Create a worktree for feature work"
-usage = 'arg "<branch>"'
-run = '''
-set -e
-ROOT="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")"
-DIR="$ROOT/.worktrees/$usage_branch"
-[ -d "$DIR" ] && echo "Already exists: $DIR" >&2 && exit 1
-git worktree add "$DIR" -b "$usage_branch" main
-cd "$DIR"
-[ -f "$ROOT/config/secret.key" ] && mkdir -p config && cp "$ROOT/config/secret.key" config/
-mise trust
-mise install
-echo ""
-echo "Worktree ready: $DIR"
-'''
-
-[tasks."worktree:clean"]
-description = "Remove a worktree"
-usage = 'arg "<branch>"'
-run = """
-git worktree remove --force .worktrees/$usage_branch
-git branch -D $usage_branch
-"""
 ```
 
 I run `mise main` after merging a piece of work.
 
-`mise worktree` handles setting up a worktree and copying in the encryption key.
+### git: Worktree setup with Claude Code
+
+`.claude/hooks/worktree-setup.sh`:
+
+```bash
+#!/bin/bash
+set -euo pipefail
+
+INPUT=$(cat)
+NAME=$(echo "$INPUT" | jq -r '.name')
+CWD=$(echo "$INPUT" | jq -r '.cwd')
+WORKTREE="$CWD/.claude/worktrees/$NAME"
+
+git worktree add -B "worktree-$NAME" "$WORKTREE" HEAD >&2
+
+ln -sf "$CWD/config/secret.key" "$WORKTREE/config/secret.key"
+mkdir -p "$WORKTREE/tmp"
+
+cd "$WORKTREE"
+mise trust --yes >&2
+mise install >&2
+
+echo "$WORKTREE"
+```
+
+`.claude/hooks/worktree-teardown.sh`:
+
+```bash
+#!/bin/bash
+set -euo pipefail
+
+INPUT=$(cat)
+WORKTREE=$(echo "$INPUT" | jq -r '.worktree_path')
+NAME=$(basename "$WORKTREE")
+REPO=$(cd "$WORKTREE" && git rev-parse --path-format=absolute --git-common-dir)
+REPO=$(dirname "$REPO")
+
+cd "$REPO"
+git worktree remove "$WORKTREE" --force >&2
+git branch -D "worktree-$NAME" >&2 || true
+
+echo "$WORKTREE"
+```
+
+`.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "WorktreeCreate": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/worktree-setup.sh",
+            "timeout": 120,
+            "statusMessage": "Setting up worktree..."
+          }
+        ]
+      }
+    ],
+    "WorktreeRemove": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/worktree-teardown.sh",
+            "statusMessage": "Removing worktree..."
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Ensures that secrets are copied, and `mise` is set up.
 
 ## ops
 
