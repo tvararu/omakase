@@ -371,7 +371,8 @@ claude plugin install rust-analyzer-lsp@claude-plugins-official --scope project
         "hooks": [
           {
             "type": "command",
-            "command": "fp=$(jq -r '.tool_input.file_path'); [[ \"$fp\" == *.rs ]] && rustfmt \"$fp\" 2>/dev/null || true"
+            "command": "rustfmt $(jq -r '.tool_input.file_path') 2>/dev/null || true",
+            "if": "Edit(**/*.rs)|Write(**/*.rs)"
           }
         ]
       }
@@ -404,7 +405,8 @@ The `typescript-language-server` is required in the path.
         "hooks": [
           {
             "type": "command",
-            "command": "fp=$(jq -r '.tool_input.file_path'); [[ \"$fp\" == *.ts ]] && biome format --write \"$fp\" 2>/dev/null || true"
+            "command": "biome format --write $(jq -r '.tool_input.file_path') 2>/dev/null || true",
+            "if": "Edit(src/**/*.ts)|Write(src/**/*.ts)"
           }
         ]
       }
@@ -412,6 +414,29 @@ The `typescript-language-server` is required in the path.
   }
 }
 ```
+
+### claude: Auto-run bun tests on save
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "fp=$(jq -r '.tool_input.file_path'); tf=\"${fp%.ts}\"; tf=\"${tf%.test}.test.ts\"; [ -f \"$tf\" ] && bun test \"$tf\" --bail || true",
+            "if": "Edit(src/**/*.ts)|Write(src/**/*.ts)"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Derives the corresponding `.test.ts` file from whatever was edited (e.g. `src/foo.ts` → `src/foo.test.ts`, `src/foo.test.ts` → `src/foo.test.ts`) and runs it with `--bail` if it exists.
 
 ### claude: Prevent accidental commits to main
 
@@ -424,7 +449,8 @@ The `typescript-language-server` is required in the path.
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.tool_input.command' | grep -q 'git commit' && [ \"$(git branch --show-current)\" = \"main\" ] && echo 'BLOCK: Do not commit to main. Create a feature branch first.' && exit 2 || exit 0"
+            "command": "[ \"$(git branch --show-current)\" = \"main\" ] && echo 'BLOCK: Do not commit to main. Create a feature branch first.' && exit 2 || exit 0",
+            "if": "Bash(git commit:*)"
           }
         ]
       }
@@ -444,7 +470,8 @@ The `typescript-language-server` is required in the path.
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.tool_input.file_path' | grep -q 'secret\\.key' && echo 'BLOCK: Do not read or edit secret files' && exit 2 || exit 0"
+            "command": "echo 'BLOCK: Do not read or edit secret files' && exit 2",
+            "if": "Edit(*/secret.key)|Write(*/secret.key)|Read(*/secret.key)"
           }
         ]
       }
