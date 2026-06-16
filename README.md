@@ -239,7 +239,7 @@ following changes:
 - Incremental compilation enabled for a speed-up
 - React removed
 
-### bun: Biome
+### bun: Biome (basic)
 
 ```json
 {
@@ -274,6 +274,169 @@ it conflicts with tsconfig's `noPropertyAccessFromIndexSignature`.
 ```
 
 `mock.module()` leaks across test files, so I ban it using a grit rule.
+
+### bun: Biome (pedantic)
+
+Bun comes with sensible defaults, but I find agents write better code when given
+better constraints. The complexity rules in particular are pretty good ROI.
+Here's an exhaustive setup:
+
+```json
+{
+  "$schema": "https://biomejs.dev/schemas/2.4.9/schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "formatter": { "indentStyle": "space" },
+  "javascript": { "globals": ["Bun"] },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "complexity": {
+        "noExcessiveCognitiveComplexity": "error",
+        "noExcessiveLinesPerFunction": "error",
+        "noExcessiveNestedTestSuites": "error",
+        "noForEach": "error",
+        "noImplicitCoercions": "error",
+        "noUselessCatchBinding": "error",
+        "noUselessStringConcat": "error",
+        "noUselessUndefined": "error",
+        "useLiteralKeys": "off",
+        "useMaxParams": "error",
+        "useSimplifiedLogicExpression": "error",
+        "useWhile": "error"
+      },
+      "correctness": {
+        "noGlobalDirnameFilename": "error",
+        "noUndeclaredVariables": "error"
+      },
+      "performance": {
+        "noBarrelFile": "error",
+        "noReExportAll": "error",
+        "useTopLevelRegex": "error"
+      },
+      "security": {
+        "noSecrets": "error"
+      },
+      "style": {
+        "noDefaultExport": "error",
+        "noDoneCallback": "error",
+        "noEnum": "error",
+        "noExportedImports": "error",
+        "noInferrableTypes": "error",
+        "noNamespace": "error",
+        "noNegationElse": "error",
+        "noNestedTernary": "error",
+        "noParameterAssign": "error",
+        "noParameterProperties": "error",
+        "noProcessEnv": "error",
+        "noShoutyConstants": "error",
+        "noSubstr": "error",
+        "noUnusedTemplateLiteral": "error",
+        "noUselessElse": "error",
+        "noYodaExpression": "error",
+        "useAsConstAssertion": "error",
+        "useAtIndex": "error",
+        "useCollapsedElseIf": "error",
+        "useCollapsedIf": "error",
+        "useConsistentArrayType": "error",
+        "useConsistentArrowReturn": "error",
+        "useConsistentBuiltinInstantiation": "error",
+        "useConsistentMemberAccessibility": "error",
+        "useConsistentObjectDefinitions": {
+          "level": "error",
+          "options": { "syntax": "shorthand" }
+        },
+        "useConsistentTypeDefinitions": {
+          "level": "error",
+          "options": { "style": "type" }
+        },
+        "useDefaultParameterLast": "error",
+        "useDefaultSwitchClause": "error",
+        "useExplicitLengthCheck": "error",
+        "useFilenamingConvention": "error",
+        "useForOf": "error",
+        "useGroupedAccessorPairs": "error",
+        "useNumberNamespace": "error",
+        "useNumericSeparators": "error",
+        "useObjectSpread": "error",
+        "useReadonlyClassProperties": "error",
+        "useShorthandAssign": "error",
+        "useSymbolDescription": "error",
+        "useThrowNewError": "error",
+        "useThrowOnlyError": "error",
+        "useTrimStartEnd": "error",
+        "useUnifiedTypeSignatures": "error"
+      },
+      "suspicious": {
+        "noAlert": "error",
+        "noBitwiseOperators": "error",
+        "noConstantBinaryExpressions": "error",
+        "noDeprecatedImports": "error",
+        "noEvolvingTypes": "error",
+        "noImportCycles": "error",
+        "noMisplacedAssertion": "error",
+        "noSkippedTests": "error",
+        "noUnassignedVariables": "error",
+        "noUnusedExpressions": "error",
+        "noVar": "error",
+        "useDeprecatedDate": "error",
+        "useErrorMessage": "error",
+        "useGuardForIn": "error",
+        "useNumberToFixedDigitsArgument": "error",
+        "useStaticResponseMethods": "error"
+      }
+    }
+  },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on",
+        "useSortedKeys": "on",
+        "useSortedProperties": "on",
+        "useSortedAttributes": "on",
+        "useSortedInterfaceMembers": "on",
+        "noDuplicateClasses": "on"
+      }
+    }
+  },
+  "files": { "includes": ["src/**"] },
+  "plugins": ["./config/biome.grit"]
+}
+```
+
+The pedantic config enforces `type` over `interface`, shorthand object syntax,
+no enums, no default exports, no barrel files, and many more. The `assist`
+section auto-organizes imports and sorts keys/properties on format.
+
+Projects that use `noProcessEnv` or `noSecrets` typically add overrides for test
+files:
+
+```json
+{
+  "overrides": [
+    {
+      "includes": ["src/**/*.test.ts"],
+      "linter": {
+        "rules": {
+          "style": { "noProcessEnv": "off" },
+          "performance": { "useTopLevelRegex": "off" },
+          "security": { "noSecrets": "off" }
+        }
+      }
+    }
+  ]
+}
+```
+
+When using the pedantic config, the auto-format hook should use `biome check`
+instead of `biome format` to also run assist actions:
+
+```json
+{
+  "type": "command",
+  "command": "biome check --write --linter-enabled=false $(jq -r '.tool_input.file_path') 2>/dev/null || true",
+  "if": "Edit(src/**/*.ts)|Write(src/**/*.ts)"
+}
+```
 
 ### bun: Testing
 
