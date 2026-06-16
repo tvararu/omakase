@@ -2,7 +2,7 @@
 
 Author: Theodor Vararu
 
-Last updated: 07/04/2026
+Last updated: 16/06/2026
 
 This is a curated set of recipes I use across multiple projects.
 
@@ -492,66 +492,6 @@ claude plugin install feature-dev@claude-plugins-official --scope project
 ```
 
 Whether I include these depends on the project.
-
-### claude: Permissions
-
-`.claude/settings.json`:
-
-```json
-{
-  "permissions": {
-    "allow": [
-      "Bash(gh issue list:*)",
-      "Bash(gh issue view:*)",
-      "Bash(gh pr checks:*)",
-      "Bash(gh pr create:*)",
-      "Bash(gh pr diff:*)",
-      "Bash(gh pr edit:*)",
-      "Bash(gh pr list:*)",
-      "Bash(gh pr view:*)",
-      "Bash(gh release:*)",
-      "Bash(gh repo view:*)",
-      "Bash(gh run list:*)",
-      "Bash(gh run view:*)",
-      "Bash(gh search:*)",
-      "Bash(git add:*)",
-      "Bash(git check-ignore:*)",
-      "Bash(git commit:*)",
-      "Bash(git fetch:*)",
-      "Bash(git log:*)",
-      "Bash(git push)",
-      "Bash(git rev-parse:*)",
-      "Bash(mise build:*)",
-      "Bash(mise bundle:*)",
-      "Bash(mise ci:*)",
-      "Bash(mise deploy:*)",
-      "Bash(mise dev:*)",
-      "Bash(mise format:*)",
-      "Bash(mise help:*)",
-      "Bash(mise install:*)",
-      "Bash(mise lint:*)",
-      "Bash(mise main:*)",
-      "Bash(mise tasks:*)",
-      "Bash(mise test:*)",
-      "Skill(claude-md-management:revise-claude-md)",
-      "WebSearch"
-    ],
-    "deny": [
-      "Bash(env)",
-      "Bash(env :*)",
-      "Bash(export)",
-      "Bash(export :*)",
-      "Bash(mise env)",
-      "Bash(mise env :*)",
-      "Bash(printenv:*)",
-      "Bash(set)"
-    ]
-  }
-}
-```
-
-This is a starter-pack allowing usually non-destructive actions, to pre-empt
-approval fatigue.
 
 ### claude: Closing loops with screenshots and video recordings
 
